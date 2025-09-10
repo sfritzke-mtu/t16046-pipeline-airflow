@@ -1,0 +1,107 @@
+
+volumes:
+  minio-data: null  
+
+x-minio-common:
+  &minio-common
+  environment:
+    MINIO_ENDPOINT: "http://minio:9000"
+    MINIO_ENDPOINT_UI: "http://minio:9002"
+    MINIO_WAIT_TIMEOUT: 300
+    MINIO_ROOT_USER: "admin"
+    MINIO_ROOT_PASSWORD: "minio-password"
+  networks:
+    - my_network    
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,DOCKER_HACK://kafka:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,DOCKER_HACK:PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # Cluster and log settings
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    command: >
+      sh -c "
+      kafka-storage format -t $${CLUSTER_ID} -c /etc/kafka/kafka.properties --ignore-formatted || true &&
+      /etc/confluent/docker/run &
+      sleep 30 &&
+      kafka-topics --create --bootstrap-server kafka:9092 --replication-factor 1 --partitions 1 --topic my_topic || true &&
+      wait
+      "
+    networks:
+      - my_network
+  zookeeper:
+    image: zookeeper:latest
+    ports:
+      - "2181:2181"
+    networks:
+      - my_network
+  scheduler:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - my_network
+  triggerer:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - my_network
+  postgres:
+    networks:
+      - my_network
+
+  minio:
+    <<: *minio-common
+    image: minio/minio:RELEASE.2023-04-13T03-08-07Z
+    container_name: minio
+    restart: unless-stopped
+    command: server --console-address ":9002" /data
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9002:9002"
+      
+    volumes:
+      - minio-data:/data/
+
+  minio-init:
+    <<: *minio-common
+    image: minio/mc:RELEASE.2023-04-12T02-21-51Z  
+    entrypoint: bash
+    command:
+      - -c
+      - |
+        start_time=$$(date +%s)
+        until curl -f -s -o /dev/null $${MINIO_ENDPOINT_UI}; do
+          echo "Waiting for MinIO server to start..."
+          sleep 1
+          current_time=$$(date +%s)
+          elapsed_time=$$(($$current_time - $$start_time))
+          if [ $${elapsed_time} -ge $${MINIO_WAIT_TIMEOUT} ]; then
+            echo "Timed out waiting for MinIO server to start"
+            exit 1
+          fi
+        done   
+
+        mc alias set myminio "$${MINIO_ENDPOINT}" "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc admin info myminio
+
+        mc mb myminio/t16046-raw-data
+        mc mb myminio/t16046-intermediate-data
+        mc mb myminio/t16046-prod-data  
+
+    volumes:
+      - ./import/minio:/import      
+    depends_on:     
+      - minio    
+
+networks:
+  my_network:
+    driver: bridge
