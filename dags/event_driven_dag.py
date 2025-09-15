@@ -6,10 +6,16 @@ import os
 #conda activate airflow-kafka-env
 #conda info --envs
 
+""" {
+  "aws_access_key_id": "admin",
+  "aws_secret_access_key": "minio-password",
+  "host": "http://minio:9000"
+} """
+
 from airflow.providers.common.messaging.triggers.msg_queue import MessageQueueTrigger
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.sdk import dag, Asset, AssetWatcher, task
-from airflow.sdk import Variable
+
 
 ##mydf = pd.DataFrame()
 ## Globale Variablen funktionieren nicht
@@ -83,8 +89,8 @@ def event_driven_dag():
 
         s3 = boto3.client('s3',
                             endpoint_url="http://minio:9000",
-                            aws_access_key_id="admin",
-                            aws_secret_access_key="minio-password"                          
+                            aws_access_key_id= "admin",
+                            aws_secret_access_key= "minio-password"                         
                           )
         
         s3_ressource = boto3.resource('s3',
