@@ -1,0 +1,20 @@
+{
+    "timestamp": "",
+    "HFProbeCounter": "",
+    "acProg[u1,1]": "",
+    "actTNumber[u1,1]": "",
+    "actToolLength1[u1]": "tool_length",
+    "actToolRadius[u1]": "",
+    "cuttEdgeParam[u1,15]": "tool_radiuscor",
+    "cuttEdgeParam[u1,3]": "",
+    "cuttEdgeParam[u1,6]": "",
+    "linShift[u1,1]": "",
+    "msg[u1]": "",
+    "ncStartCounter[u1,1]": "",
+    "progName[u1,1]": "",
+    "seekOffset[u1,1]": "",
+    "tcCarr15[u1,1]": "machine_trans_offset_x",
+    "tcCarr16[u1,1]": "machine_trans_offset_y",
+    "tcCarr5[u1,1]": "machine_rot_offset_y",
+    "tcCarr6[u1,1]": "machine_rot_offset_z"
+}
