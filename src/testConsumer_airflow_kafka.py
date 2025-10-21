@@ -2,8 +2,8 @@ from kafka import KafkaConsumer
 import json
 
 # Kafka Configuration
-#KAFKA_BROKER = "localhost:29092"  # If running from the host
-KAFKA_BROKER = "kafka:9092"  # If running inside Docker
+KAFKA_BROKER = "localhost:29092"  # If running from the host
+#KAFKA_BROKER = "kafka:9092"  # If running inside Docker
 TOPIC_NAME = "my_topic"
 
 #Use consumer_group: Kafka guarantees that a message is only ever read by a single consumer in the group

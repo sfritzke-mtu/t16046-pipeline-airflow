@@ -6,7 +6,8 @@ import os
 # pip install kafka-python
 
 # Kafka Configuration
-#KAFKA_BROKER = "localhost:9092"  # If running from the host
+#https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
+#KAFKA_BROKER = "localhost:19092"  # If running from the host
 KAFKA_BROKER = "kafka:9092"  # If running inside Docker
 TOPIC_NAME = "my_topic"
 
@@ -24,7 +25,7 @@ s3 = boto3.client(
     "s3",
     endpoint_url=MINIO_ENDPOINT,
     aws_access_key_id=MINIO_ACCESS_KEY,
-    aws_secret_access_key=MINIO_SECRET_KEY,
+    aws_secret_access_key=MINIO_SECRET_KEY
 )
 
 
@@ -32,13 +33,19 @@ for subdir, dirs, files in os.walk(DATA):
     for file in files:
         filepath = subdir + os.sep + file        
 
-        if filepath.endswith(".parquet"):
+        if filepath.endswith(".json"):
 
-            obj_status = s3.list_objects(Bucket = BUCKET_NAME, Prefix = "LENCBH4177/Finish/" + file)
+            obj_status = s3.list_objects(Bucket = BUCKET_NAME, Prefix = "LENCBH4711/Schlichten/" + file)
             
             if not obj_status.get("Contents"):
                 #Upload file Upload file to MinIO
-                s3.upload_file(filepath, BUCKET_NAME, "LENCBH4177/Finish/" + file)
+                #s3.upload_file(filepath, BUCKET_NAME, "LENCBH4711/Schlichten/" + file)
+                with open(filepath) as file_obj:
+                    data = json.load(file_obj)            
+
+
+                s3.put_object(Body=json.dumps(data), Bucket=BUCKET_NAME, Key="LENCBH4711/Schlichten/" + file)
+
                 print(f"Uploaded {file} to bucket {BUCKET_NAME}")
 
             else:
@@ -50,13 +57,14 @@ print("All files uploated to S3 Storage")
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+    api_version=(7,6,5)
 )
 
 #Notify always Kafka
-message = {"event": "Test Apache with Airflow",
-        "Blisk" :"LENCBH4177",
+message = {"event": "T16046 Datenpipeline with Airflow",
+        "Blisk" :"LENCBH4711",
         "Material-Nr" : "32A4302",
-        "Bearbeitung" : "Finish"
+        "Bearbeitung" : "Schlichten"
         }
 
 producer.send(TOPIC_NAME, value=message)
