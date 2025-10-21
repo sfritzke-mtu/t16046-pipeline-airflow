@@ -22,3 +22,23 @@ documents = response["hits"]["hits"]
 for doc in documents:
     print(f"Document ID: {doc['_id']} found!")         
     print(f"Document: {doc['_source']}")      
+
+
+print("Search documents by serialnr = LENCBH4711")
+## Query multiple fields
+query2 = {"query": {
+"bool": {
+"should": [
+    {"match": {"serialnr": "LENCBH4711"}}
+        ]
+        }
+    }       
+}
+
+response = es.search(index=INDEX_NAME, body = query2)
+#print(response)
+
+documents = response["hits"]["hits"]
+for doc in documents:
+    print(f"Document ID: {doc['_id']} found!")         
+    print(f"Document: {doc['_source']}")      
