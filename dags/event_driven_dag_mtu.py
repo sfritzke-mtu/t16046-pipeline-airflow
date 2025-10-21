@@ -99,12 +99,6 @@ def event_driven_dag_mtu():
                             aws_secret_access_key= "minio-password"                         
                           )
         
-        s3_ressource = boto3.resource('s3',
-                            endpoint_url="http://minio:9000",
-                            aws_access_key_id="admin",
-                            aws_secret_access_key="minio-password"                          
-                          )
-
         print("Read parquet-Objects in " + bucket_intermediate + "/" + prefix)
         response = s3.list_objects_v2(Bucket=bucket_intermediate, Prefix =prefix)
         for obj in response['Contents']:                
@@ -154,17 +148,14 @@ def event_driven_dag_mtu():
 
 
         es = Elasticsearch("http://elasticsearch:9200")   
-        print("Verbindung zu Elasticsearch... ")
-        print(es)          
 
         response = s3.list_objects_v2(Bucket=bucket_prod, Prefix =prefix)
         for obj in response['Contents']:
 
             # Read the parquet file
-            buffer = io.BytesIO()
-            object = s3_ressource.Object(bucket_prod, obj["Key"])
-            object.download_fileobj(buffer)
-            df = pd.read_parquet(buffer)
+            parquet_obj = s3.get_object(Bucket = bucket_prod, Key = obj["Key"])
+            df = pd.read_parquet(io.BytesIO(parquet_obj['Body'].read()))
+
 
             # Index anlegen, falls es noch nicht gibt   
             if not es.indices.exists(index=INDEX_NAME):
@@ -178,10 +169,10 @@ def event_driven_dag_mtu():
 
                 ## Index new Document
                 document = {
-                    "maschine" : df["maschine"].unique(), #111213  
-                    "materialnr" : df["material"].unique(), #456789
-                    "avo" : df["operation"].unique(), #0090 
-                    "serialnr" : df["serialn"].unique() #123456 
+                    "maschine" : df["maschine"].unique()[0], #111213  
+                    "materialnr" : df["material"].unique()[0], #456789
+                    "avo" : df["operation"].unique()[0], #0090 
+                    "serialnr" : df["serialn"].unique()[0] #123456 
                 }
 
                 response = es.index(index=INDEX_NAME, body=document, id=obj["Key"])
@@ -246,8 +237,7 @@ def event_driven_dag_mtu():
 
     #Reihenfolge der Tasks festlegen
     msg_dic >> check_materialnr(str(msg_dic["Material-Nr"])) >> [merge, send_email()]                              
-    merge >> process_parquet_files("t16046-intermediate-data", "t16046-prod-data", prefix = prefix)  
-    #>> index_files_in_elasticsearch("t16046-prod-data", prefix)
+    merge >> process_parquet_files("t16046-intermediate-data", "t16046-prod-data", prefix = prefix)  >> index_files_in_elasticsearch("t16046-prod-data", prefix)
     
 
 event_driven_dag_mtu()

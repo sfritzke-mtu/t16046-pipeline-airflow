@@ -93,6 +93,17 @@ services:
     depends_on:     
       - minio    
 
+  elasticsearch:
+    image: elasticsearch:9.0.1
+    container_name: elasticsearch
+    ports:
+      - 9200:9200
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false      
+    networks:
+      - my_network
+
 networks:
   my_network:
     driver: bridge
