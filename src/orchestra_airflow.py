@@ -33,7 +33,7 @@ for subdir, dirs, files in os.walk(DATA):
     for file in files:
         filepath = subdir + os.sep + file        
 
-        if filepath.endswith(".json"):
+        if (filepath.endswith(".json") and not filepath.endswith("test.json")):
 
             obj_status = s3.list_objects(Bucket = BUCKET_NAME, Prefix = "LENCBH4711/Schlichten/" + file)
             
